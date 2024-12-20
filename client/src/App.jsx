@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import './App.css';
 
 function App() {
@@ -35,9 +35,8 @@ function App() {
       <form onSubmit={handleSubmit}>
         <div>
           <label htmlFor="timeSeriesInput">Enter time series data (comma-separated numbers):</label>
-          <input
+          <textarea
             id="timeSeriesInput"
-            type="text"
             value={inputData}
             onChange={(e) => setInputData(e.target.value)}
             placeholder="1, 2, 3, 4, 5"
