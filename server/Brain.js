@@ -4,37 +4,63 @@ class Brain {
         this.transitions = [];
         this.patterns = [];
         this.context = []; // Array to hold last 10 activated neurons
-        this.initialize();
     }
 
-    initialize() {
-        // Create 19 base neurons (-90 to 90)
-        for (let i = -90; i <= 90; i += 10) {
-            this.neurons.push({
-                id: this.neurons.length + 1,
-                name: i === 0 ? '0' : `${i}deg`
-            });
-        }
+    /**
+     * Add a new base neuron and return its ID
+     */
+    addBaseNeuron(name) {
+        const id = this.neurons.length + 1;
+        this.neurons.push({ id, name });
+        return id;
     }
 
-    findNearestNeuron(slope) {
-        return this.neurons.reduce((nearest, current) => {
-            const currentValue = parseFloat(current.name.replace('%', ''));
-            const nearestValue = parseFloat(nearest.name.replace('%', ''));
-            
-            return Math.abs(currentValue - slope) < Math.abs(nearestValue - slope) 
-                ? current 
-                : nearest;
-        });
+    /**
+     * Activate a neuron and return the prediction or higher level prediction
+     */
+    activate(neuronId) {
+        this.updateContext(neuronId);
+        this.learn(neuronId);
+        const prediction = this.predict();
+        const higherLevelPrediction = this.elevate();
+        return higherLevelPrediction || prediction;
     }
 
+    /**
+     * Update the context with the newly activated neuron
+     */
     updateContext(neuronId) {
         this.context.unshift(neuronId);
-        if (this.context.length > 10) {
-            this.context.pop();
-        }
+        if (this.context.length > 10) this.context.pop();
     }
 
+    /**
+     * Update the transitions with the newly activated neuron
+     */
+    learn(neuronId) {
+        if (this.context.length > 1) 
+            for (let i = 1; i < this.context.length; i++)
+                this.updateTransition(this.context[i], neuronId, i);
+    }
+
+    /**
+     * Predict the next value based on the transitions
+     */
+    predict() {
+        // TODO: Implement prediction logic
+        return null;
+    }
+
+    /**
+     * Detect the pattern and represent it as a higher level prediction (elevate the concept)
+     */
+    elevate() {
+        // TODO: Implement pattern detection and elevation
+    }
+
+    /**
+     * Update the transitions with the newly activated neuron
+     */
     updateTransition(fromNeuronId, toNeuronId, distance) {
         const existingTransition = this.transitions.find(t => 
             t.fromNeuronId === fromNeuronId && 

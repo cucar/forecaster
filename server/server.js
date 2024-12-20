@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const Brain = require('./Brain');
+const SlopeEncoder = require('./SlopeEncoder');
 
 const app = express();
 const port = 5000;
@@ -8,13 +9,6 @@ const port = 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-// Helper function to calculate slope percentage
-function calculateSlope(current, previous) {
-    if (previous === 0) return current > 0 ? 100 : current < 0 ? -100 : 0;
-    const slopePercentage = ((current - previous) / Math.abs(previous)) * 100;
-    return Math.max(Math.min(slopePercentage, 100), -100);
-}
 
 // Forecast endpoint
 app.post('/api/forecast', (req, res) => {
@@ -24,27 +18,17 @@ app.post('/api/forecast', (req, res) => {
         return res.status(400).json({ error: 'Need at least 2 numbers for forecasting' });
     }
 
-    // Create a new brain instance for this request
+    // Create new brain and encoder instances for this request
     const brain = new Brain();
+    const encoder = new SlopeEncoder(brain);
 
     // Process all slopes except the last pair
+    const activations = [];
     for (let i = 1; i < timeSeriesData.length; i++) {
         const current = timeSeriesData[i];
         const previous = timeSeriesData[i-1];
-        const slope = calculateSlope(current, previous);
-
-        // Find and activate the nearest neuron
-        const activatedNeuron = brain.findNearestNeuron(slope);
-        
-        // Update context with the newly activated neuron
-        brain.updateContext(activatedNeuron.id);
-
-        // If we have previous context, update transitions
-        if (brain.context.length > 1) {
-            for (let j = 1; j < brain.context.length; j++) {
-                brain.updateTransition(brain.context[j], activatedNeuron.id, j);
-            }
-        }
+        const neuron = encoder.encode(current, previous);
+        activations.push(neuron);
     }
 
     // For now, just return the last value and debug info
@@ -52,7 +36,8 @@ app.post('/api/forecast', (req, res) => {
         forecast: timeSeriesData[timeSeriesData.length - 1],
         debug: {
             context: brain.context,
-            transitions: brain.transitions
+            transitions: brain.transitions,
+            activations
         }
     });
 });
