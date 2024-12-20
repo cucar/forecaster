@@ -1,7 +1,9 @@
 class Brain {
     constructor() {
         this.neurons = [];
-        this.transitions = [];
+        this.transitions = [];  // The actual transitions data
+        this.transitionsFromIndex = {};  // Index for looking up by fromNeuronId
+        this.transitionsToIndex = {};    // Index for looking up by toNeuronId
         this.patterns = [];
         this.context = []; // Array to hold last 10 activated neurons
     }
@@ -27,11 +29,11 @@ class Brain {
     }
 
     /**
-     * Update the context with the newly activated neuron
+     * Update the context with the newly activated neuron - newest neuron is at the front of the array
      */
     updateContext(neuronId) {
-        this.context.unshift(neuronId);
-        if (this.context.length > 10) this.context.pop();
+        this.context.unshift(neuronId); // add the neuron to the front of the array
+        if (this.context.length > 10) this.context.pop(); // keep the array to 10 neurons
     }
 
     /**
@@ -41,6 +43,40 @@ class Brain {
         if (this.context.length > 1) 
             for (let i = 1; i < this.context.length; i++)
                 this.updateTransition(this.context[i], neuronId, i);
+    }
+
+    /**
+     * Update the transitions with the newly activated neuron
+     */
+    updateTransition(fromNeuronId, toNeuronId, distance) {
+        // Find existing transition using the index
+        const fromIndex = this.transitionsFromIndex[fromNeuronId] || [];
+        const transitionIndex = fromIndex.findIndex(i => 
+            this.transitions[i].toNeuronId === toNeuronId && 
+            this.transitions[i].distance === distance
+        );
+
+        if (transitionIndex !== -1) {
+            // Update existing transition
+            this.transitions[fromIndex[transitionIndex]].count++;
+        } else {
+            // Create new transition
+            const newTransition = {
+                fromNeuronId,
+                toNeuronId,
+                distance,
+                count: 1
+            };
+            
+            // Add to transitions array and get its index
+            const newIndex = this.transitions.push(newTransition) - 1;
+            
+            // Update indexes
+            if (!this.transitionsFromIndex[fromNeuronId]) this.transitionsFromIndex[fromNeuronId] = [];
+            if (!this.transitionsToIndex[toNeuronId]) this.transitionsToIndex[toNeuronId] = [];
+            this.transitionsFromIndex[fromNeuronId].push(newIndex);
+            this.transitionsToIndex[toNeuronId].push(newIndex);
+        }
     }
 
     /**
@@ -58,27 +94,6 @@ class Brain {
         // TODO: Implement pattern detection and elevation
     }
 
-    /**
-     * Update the transitions with the newly activated neuron
-     */
-    updateTransition(fromNeuronId, toNeuronId, distance) {
-        const existingTransition = this.transitions.find(t => 
-            t.fromNeuronId === fromNeuronId && 
-            t.toNeuronId === toNeuronId && 
-            t.distance === distance
-        );
-
-        if (existingTransition) {
-            existingTransition.count++;
-        } else {
-            this.transitions.push({
-                fromNeuronId,
-                toNeuronId,
-                distance,
-                count: 1
-            });
-        }
-    }
 }
 
 module.exports = Brain; 
