@@ -1,14 +1,13 @@
 class SlopeEncoder {
     constructor(brain) {
-        this.brain = brain;
-        this.initializeBaseNeurons();
+        this.initializeBaseNeurons(brain);
     }
 
     /**
      * Initialize 19 base neurons (-90 to 90 degrees)
      */
-    initializeBaseNeurons() {
-        for (let i = -90; i <= 90; i += 10) this.brain.addBaseNeuron(`${i}deg`);
+    initializeBaseNeurons(brain) {
+        for (let i = -90; i <= 90; i += 10) brain.addBaseNeuron(`${i}deg`);
     }
 
     /**
@@ -16,8 +15,7 @@ class SlopeEncoder {
      */
     encode(current, previous) {
         const slopeDegrees = this.calculateSlopeDegrees(current, previous);
-        const neuronId = this.findNearestDegreeNeuron(slopeDegrees);
-        return this.brain.activate(neuronId);
+        return this.findNearestDegreeNeuron(slopeDegrees);
     }
 
     /**
@@ -44,6 +42,23 @@ class SlopeEncoder {
         
         // Map degree to neuron ID (from -90:1 to 90:19)
         return (roundedDegrees + 90) / 10 + 1;
+    }
+
+    /**
+     * Decode a neuron ID back to a value change
+     */
+    decode(neuronId, lastValue) {
+        // Convert neuron ID back to degrees
+        const degrees = (neuronId - 1) * 10 - 90;
+        
+        // Convert degrees to radians
+        const radians = degrees * (Math.PI/180);
+        
+        // Get the change using tangent (since tan = rise/run and run = 1)
+        const change = Math.tan(radians);
+        
+        // Return the new value
+        return lastValue + change;
     }
 }
 

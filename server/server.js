@@ -22,24 +22,32 @@ app.post('/api/forecast', (req, res) => {
     const brain = new Brain();
     const encoder = new SlopeEncoder(brain);
 
+    let lastPredictedNeuronId = null;
+
     // Process all slopes except the last pair
-    const activations = [];
     for (let i = 1; i < timeSeriesData.length; i++) {
         const current = timeSeriesData[i];
         const previous = timeSeriesData[i-1];
-        const neuron = encoder.encode(current, previous);
-        activations.push(neuron);
+        
+        // Encode and activate current value
+        const actualNeuronId = encoder.encode(current, previous);
+        
+        // Log prediction accuracy if we had a prediction
+        if (lastPredictedNeuronId !== null) {
+            // Calculate accuracy based on how close the predictions are (19 possible neurons)
+            const accuracy = Math.max(0, 100 - Math.abs(lastPredictedNeuronId - actualNeuronId) * (100/18));
+            console.log(`Predicted: ${lastPredictedNeuronId}, Actual: ${actualNeuronId}, Accuracy: ${accuracy.toFixed(1)}%`);
+        }
+
+        // Get prediction for next value
+        lastPredictedNeuronId = brain.activate(actualNeuronId);
     }
 
-    // For now, just return the last value and debug info
-    res.json({ 
-        forecast: timeSeriesData[timeSeriesData.length - 1],
-        debug: {
-            context: brain.context,
-            transitions: brain.transitions,
-            activations
-        }
-    });
+    // Convert the final predicted neuron to a forecasted value
+    const lastValue = timeSeriesData[timeSeriesData.length - 1];
+    const forecast = encoder.decode(lastPredictedNeuronId, lastValue);
+    
+    res.json({ forecast });
 });
 
 app.listen(port, () => {
