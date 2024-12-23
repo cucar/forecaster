@@ -145,10 +145,42 @@ class Brain {
     }
 
     /**
-     * Detect the pattern and represent it as a higher level prediction (elevate the concept)
+     * Check if two adjacent neurons in context form a pattern
+     * @param {number} position - Position in context to check (checks this position and next)
+     * @returns {boolean} - True if transition count > 3
+     */
+    isPattern(position) {
+        // Get transitions from the earlier neuron
+        const transitionIdx = this.transitionsFromIndex[this.context[position]] || [];
+        
+        // Check if any transition to the later neuron has count > 3
+        return transitionIdx.some(idx => {
+            const transition = this.transitions[idx];
+            return transition.toNeuronId === this.context[position - 1] && 
+                   transition.distance === 1 && 
+                   transition.count > 3;
+        });
+    }
+
+    /**
+     * Detect the pattern and represent it as a higher level prediction and activate it
      */
     elevate() {
+
+        // need at least 2 neurons in context to detect a pattern
+        if (this.context.length < 2) return;
+
+        // find the first position where the pattern breaks
+        const patternBreak = this.context.findIndex((_, pos) => pos > 0 && !this.isPattern(pos));
+
+        // if there are no patterns, return null to indicate that no elevation was done and therefore there is no higher level prediction
+        if (patternBreak === -1) return null;
+
+        // extract the pattern from the context based on the pattern break
+        const detectedPattern = this.context.slice(0, patternBreak);
+
         // TODO: Implement pattern detection and elevation
+        return detectedPattern;
     }
 
 }
