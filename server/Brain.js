@@ -305,21 +305,25 @@ class Brain {
      * Detect the pattern and represent it as a higher level prediction and activate it
      */
     elevate(level) {
+        console.log('elevate', level);
         const context = this.getContext(level);
         // need at least 2 neurons in context to detect a pattern
         if (context.length < 2) return null;
 
         // find the first position where the pattern breaks
         const patternBreak = context.findIndex((_, pos) => pos > 0 && !this.isPattern(pos, level));
+        console.log('patternBreak', context, patternBreak);
 
         // if there are no patterns, return null to indicate no elevation was done
         if (patternBreak <= 1) return null;
 
         // extract the pattern from the context based on the pattern break
         const detectedPattern = context.slice(0, patternBreak);
+        console.log('detectedPattern', detectedPattern);
 
         // get or create the pattern neuron
         const patternNeuronId = this.getPatternNeuron(detectedPattern);
+        console.log('patternNeuronId', patternNeuronId);
 
         // loop through the pattern neurons and update the pattern connections
         for (let i = 1; i < detectedPattern.length; i++) this.updatePatternConnection(detectedPattern[i], patternNeuronId, i);
