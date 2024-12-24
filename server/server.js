@@ -31,18 +31,18 @@ app.post('/api/forecast', (req, res) => {
         
         // Encode and activate current value
         const actualNeuronId = encoder.encode(current, previous);
-        console.log(`Encoded neuron: ${JSON.stringify(brain.neurons[actualNeuronId])}`);
+        console.log(`Encoded neuron ${actualNeuronId}: ${brain.getNeuronName(actualNeuronId)}`);
         
-        // Log prediction accuracy if we had a prediction
-        if (lastPredictedNeuronId !== null) {
-            // Calculate accuracy based on how close the predictions are (13 possible neurons)
+        // Log prediction accuracy if we had a prediction - Calculate accuracy based on how close the predictions are (13 possible neurons)
+        if (lastPredictedNeuronId) {
             const distance = Math.abs(lastPredictedNeuronId - actualNeuronId);
             const accuracy = Math.max(0, 100 - 100 * (distance / 12));
-            console.log(`Predicted: ${lastPredictedNeuronId}, Actual: ${actualNeuronId}, Accuracy: ${accuracy.toFixed(1)}%`);
+            console.log(`PredictionAccuracy: ${accuracy.toFixed(1)}%`);
         }
 
         // Get prediction for next value
         lastPredictedNeuronId = brain.activate(actualNeuronId);
+        if (lastPredictedNeuronId) console.log(`Predicted Neuron: ${lastPredictedNeuronId} ${brain.getNeuronName(lastPredictedNeuronId)}`);
     }
 
     // Convert the final predicted neuron to a forecasted value

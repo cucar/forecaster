@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './App.css';
 
 function App() {
-  const [inputData, setInputData] = useState('1,2,3,4,5');
+  const [inputData, setInputData] = useState('1,2,1,2');
   const [forecast, setForecast] = useState(null);
   const [error, setError] = useState('');
 

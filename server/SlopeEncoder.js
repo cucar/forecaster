@@ -8,7 +8,7 @@ class SlopeEncoder {
      * Initialize the base neurons (-90 to 90 degrees)
      */
     initializeBaseNeurons(brain) {
-        for (let i = -90; i <= 90; i += this.granularity) brain.addBaseNeuron(`${i}deg`);
+        for (let i = -90; i <= 90; i += this.granularity) brain.addNeuron(`${i}deg`);
     }
 
     /**
@@ -42,7 +42,7 @@ class SlopeEncoder {
         const roundedDegrees = Math.round(slopeDegrees / this.granularity) * this.granularity;
 
         // Map degree to neuron ID (from -90:1 to 90:granularity*2 + 1)
-        return (roundedDegrees + 90) / this.granularity;
+        return (roundedDegrees + 90) / this.granularity + 1;
     }
 
     /**
@@ -50,7 +50,7 @@ class SlopeEncoder {
      */
     decode(neuronId, lastValue) {
         // Convert neuron ID back to degrees
-        const degrees = neuronId * this.granularity - 90;
+        const degrees = (neuronId - 1) * this.granularity - 90;
         
         // Convert degrees to radians
         const radians = degrees * (Math.PI/180);
