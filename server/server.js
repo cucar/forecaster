@@ -31,11 +31,13 @@ app.post('/api/forecast', (req, res) => {
         
         // Encode and activate current value
         const actualNeuronId = encoder.encode(current, previous);
+        console.log(`Encoded neuron: ${JSON.stringify(brain.neurons[actualNeuronId])}`);
         
         // Log prediction accuracy if we had a prediction
         if (lastPredictedNeuronId !== null) {
-            // Calculate accuracy based on how close the predictions are (19 possible neurons)
-            const accuracy = Math.max(0, 100 - Math.abs(lastPredictedNeuronId - actualNeuronId) * (100/18));
+            // Calculate accuracy based on how close the predictions are (13 possible neurons)
+            const distance = Math.abs(lastPredictedNeuronId - actualNeuronId);
+            const accuracy = Math.max(0, 100 - 100 * (distance / 12));
             console.log(`Predicted: ${lastPredictedNeuronId}, Actual: ${actualNeuronId}, Accuracy: ${accuracy.toFixed(1)}%`);
         }
 

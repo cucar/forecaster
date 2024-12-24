@@ -1,13 +1,14 @@
 class SlopeEncoder {
     constructor(brain) {
+        this.granularity = 15;
         this.initializeBaseNeurons(brain);
     }
 
     /**
-     * Initialize 19 base neurons (-90 to 90 degrees)
+     * Initialize the base neurons (-90 to 90 degrees)
      */
     initializeBaseNeurons(brain) {
-        for (let i = -90; i <= 90; i += 10) brain.addBaseNeuron(`${i}deg`);
+        for (let i = -90; i <= 90; i += this.granularity) brain.addBaseNeuron(`${i}deg`);
     }
 
     /**
@@ -37,11 +38,11 @@ class SlopeEncoder {
      * Find the nearest neuron to the given slope angle in degrees
      */
     findNearestDegreeNeuron(slopeDegrees) {
-        // Round to nearest 10 degrees
-        const roundedDegrees = Math.round(slopeDegrees / 10) * 10;
-        
-        // Map degree to neuron ID (from -90:1 to 90:19)
-        return (roundedDegrees + 90) / 10 + 1;
+        // Round to nearest degrees
+        const roundedDegrees = Math.round(slopeDegrees / this.granularity) * this.granularity;
+
+        // Map degree to neuron ID (from -90:1 to 90:granularity*2 + 1)
+        return (roundedDegrees + 90) / this.granularity;
     }
 
     /**
@@ -49,7 +50,7 @@ class SlopeEncoder {
      */
     decode(neuronId, lastValue) {
         // Convert neuron ID back to degrees
-        const degrees = (neuronId - 1) * 10 - 90;
+        const degrees = neuronId * this.granularity - 90;
         
         // Convert degrees to radians
         const radians = degrees * (Math.PI/180);
