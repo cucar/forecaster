@@ -12,7 +12,7 @@ class Brain {
         this.patternChildIndex = {};     // Index for looking up by child neuron ID
         this.patternParentIndex = {};    // Index for looking up by parent neuron ID
         
-        this.contexts = [[]]  // Array of arrays, initialized with one empty level
+        this.contexts = [[]]  // Array of arrays of context objects: [[ { neuronId, elevated }, ... ], ...]
     }
 
     /**
@@ -73,7 +73,7 @@ class Brain {
         while (this.contexts.length <= level) this.contexts.push([]);
 
         // Add neuron to front of the specified level's context
-        this.contexts[level].unshift(neuronId);
+        this.contexts[level].unshift({ neuronId, elevated: false });
         
         // Keep each level's context to 10 neurons
         if (this.contexts[level].length > 10) this.contexts[level].pop();
@@ -91,7 +91,7 @@ class Brain {
      */
     learn(neuronId, level) {
         const context = this.getContext(level);
-        for (let i = 1; i < context.length; i++) this.updateTransition(context[i], neuronId, i);
+        for (let i = 1; i < context.length; i++) this.updateTransition(context[i].neuronId, neuronId, i);
     }
 
     /**
@@ -211,7 +211,7 @@ class Brain {
         for (let i = 0; i < context.length; i++) {
 
             // we are predicting the next neuron to activate based on the neuron in context
-            const contextNeuronId = context[i];
+            const contextNeuronId = context[i].neuronId;
 
             // the distance starts with 1 for the newest neuron in context - increases as we look at older neurons in context
             const distance = i + 1;
@@ -287,17 +287,25 @@ class Brain {
         // If no patterns found, return null or create new pattern
         if (Object.keys(parentScores).length === 0) return null;
 
-        // Find parent with highest score
+        // check the ideal scores for each of the predicted neurons and filter out the ones that are less than 80% (pareto principle)
+        for (const [neuronId, score] of Object.entries(parentScores)) {
+
+            // calculate the ideal score for this parent neuron
+            const idealScore = this.getNeuronPattern(neuronId).reduce((sum, pattern) => sum + pattern.count, 0);
+            
+            // filter out the ones that are less than 80% of the ideal score
+            if (score < idealScore * 0.8) delete parentScores[neuronId];
+        }
+
+        // Find parent with highest score and return its id
         let highestScore = 0;
         let bestParentId = null;
-        
         for (const [parentId, score] of Object.entries(parentScores)) {
             if (score > highestScore) {
                 highestScore = score;
                 bestParentId = parseInt(parentId);
             }
         }
-
         return bestParentId;
     }
 
@@ -309,15 +317,15 @@ class Brain {
     isPattern(position, level) {
         // Get transitions from the earlier neuron
         const context = this.getContext(level);
-        const neuronId = context[position];
-        // console.log('isPattern', position, context, neuronId);
+        const neuronId = context[position].neuronId;
 
         // Check if any transition to the later neuron has count > learningRate
         const transitionIdx = this.transitionsFromIndex[neuronId] || [];
         return transitionIdx.some(idx => {
             const transition = this.transitions[idx];
-            // console.log('transition', transition, transition.toNeuronId === context[position - 1] && transition.distance === 1 && transition.count >= this.learningRate);
-            return transition.toNeuronId === context[position - 1] && transition.distance === 1 && transition.count >= this.learningRate;
+            return transition.toNeuronId === context[position - 1].neuronId && 
+                transition.distance === 1 && 
+                transition.count >= this.learningRate;
         });
     }
 
@@ -330,6 +338,12 @@ class Brain {
         // find the first position where the pattern breaks
         let patternBreak = 0;
         for (let i = 1; i < context.length; i++) {
+            // Skip positions that are already part of an elevated pattern
+            if (context[i].elevated || context[i-1].elevated) {
+                patternBreak = i;
+                break;
+            }
+
             if (!this.isPattern(i, level)) {
                 patternBreak = i;
                 break;
@@ -341,8 +355,11 @@ class Brain {
         // if there are no patterns, return null to indicate no elevation was done
         if (patternBreak <= 1) return null;
 
+        // loop through the pattern neurons and update the pattern connections
+        for (let i = 0; i < patternBreak; i++) context[i].elevated = true;
+
         // extract the pattern from the context based on the pattern break
-        const detectedPattern = context.slice(0, patternBreak).toReversed();
+        const detectedPattern = context.slice(0, patternBreak).map(ctx => ctx.neuronId).toReversed();
         console.log('detectedPattern', detectedPattern);
 
         // get or create the pattern neuron
@@ -350,7 +367,7 @@ class Brain {
         console.log('patternNeuronId', patternNeuronId, this.getNeuronName(patternNeuronId));
 
         // loop through the pattern neurons and update the pattern connections
-        for (let i = 1; i < detectedPattern.length; i++) this.updatePatternConnection(detectedPattern[i], patternNeuronId, i);
+        for (let i = 0; i < detectedPattern.length; i++) this.updatePatternConnection(detectedPattern[i], patternNeuronId, i);
 
         // now activate the pattern neuron, which will return the higher level prediction
         return this.activate(patternNeuronId, level + 1);
