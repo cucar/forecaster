@@ -18,9 +18,9 @@ class Brain {
     /**
      * Add a new neuron and return its ID
      */
-    addNeuron(name) {
+    addNeuron(name, pattern = null) {
         const id = this.neurons.length + 1;
-        this.neurons.push({ id, name });
+        this.neurons.push({ id, name, pattern });
         return id;
     }
 
@@ -28,7 +28,7 @@ class Brain {
      * adds a pattern neuron and returns its id
      */
     addPatternNeuron(pattern) {
-        const neuronId = this.addNeuron(`[${pattern.map(neuronId => this.getNeuronName(neuronId)).join(',')}]`);
+        const neuronId = this.addNeuron(`[${pattern.map(neuronId => this.getNeuronName(neuronId)).join(',')}]`, pattern);
         console.log('added pattern neuron', neuronId, this.getNeuronName(neuronId));
         return neuronId;
     }
@@ -37,7 +37,26 @@ class Brain {
      * returns the neuron name for a given neuron id
      */
     getNeuronName(neuronId) {
-        return this.neurons[neuronId - 1].name;
+        return this.getNeuron(neuronId).name;
+    }
+
+    /**
+     * returns the neuron for a given neuron id
+     */
+    getNeuron(neuronId) {
+        return this.neurons[neuronId - 1];
+    }
+
+    /**
+     * returns the starting base neuron id for a given pattern neuron id
+     */
+    getStartingBaseNeuronId(neuronId) {
+
+        // if the neuron is not a pattern neuron, return its id as it is - this is the base neuron already
+        if (!this.getNeuron(neuronId).pattern) return neuronId;
+
+        // if the neuron is a pattern neuron, return the starting base neuron id of it recursively
+        return this.getStartingBaseNeuronId(this.getNeuron(neuronId).pattern[0]);
     }
 
     /**

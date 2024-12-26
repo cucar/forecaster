@@ -45,9 +45,10 @@ app.post('/api/forecast', (req, res) => {
         if (lastPredictedNeuronId) console.log(`Predicted Neuron: ${lastPredictedNeuronId} ${brain.getNeuronName(lastPredictedNeuronId)}`);
     }
 
-    // Convert the final predicted neuron to a forecasted value
+    // Convert the final predicted neuron to a forecasted value - get the lowest level base neuron if the neuron is a pattern neuron
+    const predictedBaseNeuronId = brain.getStartingBaseNeuronId(lastPredictedNeuronId);
     const lastValue = timeSeriesData[timeSeriesData.length - 1];
-    const forecast = encoder.decode(lastPredictedNeuronId, lastValue);
+    const forecast = encoder.decode(predictedBaseNeuronId, lastValue);
     
     res.json({ forecast });
 });
