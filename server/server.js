@@ -20,7 +20,7 @@ app.post('/api/forecast', (req, res) => {
 
     // Create new brain and encoder instances for this request
     const brain = new Brain();
-    const encoder = new SlopeEncoder(brain);
+    const encoder = new SlopeEncoder(brain, timeSeriesData);
 
     let lastPredictedNeuronId = null;
 

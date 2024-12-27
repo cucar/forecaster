@@ -1,7 +1,22 @@
 class SlopeEncoder {
-    constructor(brain) {
-        this.granularity = 15;
-        this.initializeBaseNeurons(brain);
+
+    /**
+     * constructor
+     */
+    constructor(brain, timeSeriesData) {
+        this.granularity = 15; // factor of this many degrees is used to cover -90 to 90 degrees
+        this.initializeBaseNeurons(brain); // create the base neurons (-90 to 90 degrees)
+        this.avgDelta = this.initializeAvgDelta(timeSeriesData); // initialize scaled unit x, which is used to calculate the run for the slope
+        console.log(this.avgDelta, timeSeriesData);
+    }
+
+    /**
+     * initializes average of the delta between points in the time series, which is used to calculate the run for the slope
+     * by using the average delta, we can distribute the angle of the slope more evenly across the neurons
+     */
+    initializeAvgDelta(series) {
+        const count = series.length;
+        return count <= 1 ? 1 : series.reduce((sum, point, i) => i === 0 ? 0 : sum + Math.abs(point - series[i - 1]), 0) / (count - 1); 
     }
 
     /**
@@ -23,9 +38,9 @@ class SlopeEncoder {
      * Calculate the slope angle in degrees between the current and previous values
      */
     calculateSlopeDegrees(current, previous) {
-        // Calculate rise over run (run is always 1 unit in time series)
+        // Calculate rise over run (run is the average delta between points in the time series)
         const rise = current - previous;
-        const run = 1;
+        const run = this.avgDelta;
         
         // Get angle in radians using arctangent
         const radians = Math.atan(rise/run);
@@ -55,8 +70,8 @@ class SlopeEncoder {
         // Convert degrees to radians
         const radians = degrees * (Math.PI/180);
         
-        // Get the change using tangent (since tan = rise/run and run = 1)
-        const change = Math.tan(radians);
+        // Get the change using tangent (since tan = rise/run and run = average delta between points in the time series)
+        const change = Math.tan(radians) * this.avgDelta;
         
         // Return the new value
         return lastValue + change;
