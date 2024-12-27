@@ -357,13 +357,9 @@ class Brain {
         // find the first position where the pattern breaks
         let patternBreak = 0;
         for (let i = 1; i < context.length; i++) {
-            // Skip positions that are already part of an elevated pattern
-            if (context[i].elevated || context[i-1].elevated) {
-                patternBreak = i;
-                break;
-            }
-
-            if (!this.isPattern(i, level)) {
+            // if we hit a neuron that breaks the pattern or was already part of an elevated pattern, break the loop 
+            // when a neuron is elevated, it gets inhibited and can no longer be used for elevation at that position
+            if (context[i].elevated || context[i-1].elevated || !this.isPattern(i, level)) {
                 patternBreak = i;
                 break;
             }

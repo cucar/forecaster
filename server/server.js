@@ -35,7 +35,8 @@ app.post('/api/forecast', (req, res) => {
         
         // Log prediction accuracy if we had a prediction - Calculate accuracy based on how close the predictions are (13 possible neurons)
         if (lastPredictedNeuronId) {
-            const distance = Math.abs(lastPredictedNeuronId - actualNeuronId);
+            const lastPredictedBaseNeuronId = brain.getStartingBaseNeuronId(lastPredictedNeuronId);
+            const distance = Math.abs(lastPredictedBaseNeuronId - actualNeuronId);
             const accuracy = Math.max(0, 100 - 100 * (distance / 12));
             console.log(`PredictionAccuracy: ${accuracy.toFixed(1)}%`);
         }
