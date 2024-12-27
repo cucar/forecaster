@@ -1,6 +1,8 @@
 class Brain {
     constructor() {
         this.learningRate = 1; // how many times a pattern must be seen to be considered learned
+        this.maxLevel = 0; // keep track of maximum level reached - just for debugging
+        this.contextSize = 10; // number of neurons to keep in context - short term memory size for each level
 
         this.neurons = [];
         this.transitions = []; // The actual transitions data
@@ -64,6 +66,9 @@ class Brain {
      */
     activate(neuronId, level = 0) {
 
+        // keep track of maximum level reached - just for debugging
+        if (level > this.maxLevel) this.maxLevel = level;
+
         // first, update the context with the newly activated neuron
         this.updateContext(neuronId, level);
 
@@ -94,8 +99,8 @@ class Brain {
         // Add neuron to front of the specified level's context
         this.contexts[level].unshift({ neuronId, elevated: false });
         
-        // Keep each level's context to 10 neurons
-        if (this.contexts[level].length > 10) this.contexts[level].pop();
+        // limit each level's context size
+        if (this.contexts[level].length > this.contextSize) this.contexts[level].pop();
     }
 
     /**
@@ -252,8 +257,9 @@ class Brain {
 
                 // add or increment the prediction score for the neuron we are predicting 
                 // the further away the neuron is in context, the less weight it has
-                // weight decreases linearly from 1 to 0.1 as distance increases from 1 to 10
-                const weight = Math.max(1.1 - (distance * 0.1), 0.1);
+                // weight decreases linearly from 1 to 0.1 as distance increases from 1 to context size
+                const step = 1 / this.contextSize;
+                const weight = Math.max(1 + step - (distance * step), step);
                 predictions[transition.toNeuronId] = (predictions[transition.toNeuronId] || 0) + (transition.count * weight);
             });
         }
@@ -295,8 +301,9 @@ class Brain {
                 if (pattern.position !== position) return;
 
                 // Weight decreases as position difference increases
+                const step = 1 / this.contextSize;
                 const positionDiff = Math.abs(pattern.position - position);
-                const weight = Math.max(1.1 - (positionDiff * 0.1), 0.1);
+                const weight = Math.max(1 + step - (positionDiff * step), step);
                 
                 // Add weighted score to parent's total
                 parentScores[pattern.parentNeuronId] = (parentScores[pattern.parentNeuronId] || 0) + (pattern.count * weight);

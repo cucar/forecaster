@@ -45,7 +45,7 @@ class SlopeEncoder {
 
         // show the accuracy values and average
         const avgAccuracy = accuracy.reduce((sum, val) => sum + Number(val), 0) / accuracy.length;
-        console.log('accuracy', accuracy, 'average:', avgAccuracy.toFixed(1) + '%');
+        console.log('accuracy', accuracy, 'average:', avgAccuracy.toFixed(1) + '%', 'max level:', this.brain.maxLevel);
     
         // Convert the final predicted neuron to a forecasted value - get the lowest level base neuron if the neuron is a pattern neuron
         const predictedBaseNeuronId = this.brain.getStartingBaseNeuronId(lastPredictedNeuronId);
