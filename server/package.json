@@ -2,9 +2,11 @@
   "name": "time-series-forecaster-server",
   "version": "1.0.0",
   "description": "",
+  "type":"module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "test": "node tests/test.js",
     "dev": "nodemon server.js"
   },
   "keywords": [],

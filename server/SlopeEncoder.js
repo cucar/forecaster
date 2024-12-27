@@ -3,11 +3,56 @@ class SlopeEncoder {
     /**
      * constructor
      */
-    constructor(brain, timeSeriesData) {
+    constructor(brain) {
+        this.brain = brain; // brain instance that will learn the time series data
         this.granularity = 15; // factor of this many degrees is used to cover -90 to 90 degrees
-        this.initializeBaseNeurons(brain); // create the base neurons (-90 to 90 degrees)
-        this.avgDelta = this.initializeAvgDelta(timeSeriesData); // initialize scaled unit x, which is used to calculate the run for the slope
+        this.initializeBaseNeurons(); // create the base neurons (-90 to 90 degrees)
+    }
+
+    /**
+     * activates the time series data in the brain
+     */
+    activate(timeSeriesData) {
+
+        // initialize scaled unit x, which is used to calculate the run for the slope
+        this.avgDelta = this.initializeAvgDelta(timeSeriesData);
         console.log(this.avgDelta, timeSeriesData);
+        
+        // encode the time series data into neurons and activate them
+        let lastPredictedNeuronId = null; // predicted neuron id for each activated neuron
+        const accuracy = []; // array of accuracy values for each prediction
+        for (let i = 1; i < timeSeriesData.length; i++) {
+            
+            // Encode and activate current value
+            const current = timeSeriesData[i];
+            const previous = timeSeriesData[i-1];
+            const actualNeuronId = this.encode(current, previous);
+            console.log(`Encoded neuron ${actualNeuronId}: ${this.brain.getNeuronName(actualNeuronId)}`);
+            
+            // Log prediction accuracy if we had a prediction - Calculate accuracy based on how close the predictions are (13 possible neurons)
+            if (lastPredictedNeuronId) {
+                const lastPredictedBaseNeuronId = this.brain.getStartingBaseNeuronId(lastPredictedNeuronId);
+                const distance = Math.abs(lastPredictedBaseNeuronId - actualNeuronId);
+                const accuracyValue = Math.max(0, 100 - 100 * (distance / 12));
+                console.log(`PredictionAccuracy: ${accuracyValue.toFixed(1)}%`);
+                accuracy.push(accuracyValue.toFixed(1));
+            }
+    
+            // Get prediction for next value
+            lastPredictedNeuronId = this.brain.activate(actualNeuronId);
+            if (lastPredictedNeuronId) console.log(`Predicted Neuron: ${lastPredictedNeuronId} ${this.brain.getNeuronName(lastPredictedNeuronId)}`);
+        }
+
+        // show the accuracy values and average
+        const avgAccuracy = accuracy.reduce((sum, val) => sum + val, 0) / accuracy.length;
+        console.log('accuracy', accuracy, 'average:', avgAccuracy.toFixed(1) + '%');
+    
+        // Convert the final predicted neuron to a forecasted value - get the lowest level base neuron if the neuron is a pattern neuron
+        const predictedBaseNeuronId = this.brain.getStartingBaseNeuronId(lastPredictedNeuronId);
+        const lastValue = timeSeriesData[timeSeriesData.length - 1];
+        const forecast = this.decode(predictedBaseNeuronId, lastValue);
+        console.log('forecast', forecast);
+        return forecast;
     }
 
     /**
@@ -22,8 +67,8 @@ class SlopeEncoder {
     /**
      * Initialize the base neurons (-90 to 90 degrees)
      */
-    initializeBaseNeurons(brain) {
-        for (let i = -90; i <= 90; i += this.granularity) brain.addNeuron(`${i}deg`);
+    initializeBaseNeurons() {
+        for (let i = -90; i <= 90; i += this.granularity) this.brain.addNeuron(`${i}deg`);
     }
 
     /**
@@ -78,4 +123,4 @@ class SlopeEncoder {
     }
 }
 
-module.exports = SlopeEncoder; 
+export default SlopeEncoder; 

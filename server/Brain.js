@@ -404,4 +404,4 @@ class Brain {
 
 }
 
-module.exports = Brain; 
+export default Brain; 
