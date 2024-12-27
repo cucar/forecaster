@@ -44,15 +44,14 @@ class SlopeEncoder {
         }
 
         // show the accuracy values and average
-        const avgAccuracy = accuracy.reduce((sum, val) => sum + val, 0) / accuracy.length;
+        console.log('accuracy sum', accuracy.reduce((sum, val) => sum + Number(val), 0));
+        const avgAccuracy = accuracy.reduce((sum, val) => sum + Number(val), 0) / accuracy.length;
         console.log('accuracy', accuracy, 'average:', avgAccuracy.toFixed(1) + '%');
     
         // Convert the final predicted neuron to a forecasted value - get the lowest level base neuron if the neuron is a pattern neuron
         const predictedBaseNeuronId = this.brain.getStartingBaseNeuronId(lastPredictedNeuronId);
         const lastValue = timeSeriesData[timeSeriesData.length - 1];
-        const forecast = this.decode(predictedBaseNeuronId, lastValue);
-        console.log('forecast', forecast);
-        return forecast;
+        return this.decode(predictedBaseNeuronId, lastValue);
     }
 
     /**
