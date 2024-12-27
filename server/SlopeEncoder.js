@@ -44,7 +44,6 @@ class SlopeEncoder {
         }
 
         // show the accuracy values and average
-        console.log('accuracy sum', accuracy.reduce((sum, val) => sum + Number(val), 0));
         const avgAccuracy = accuracy.reduce((sum, val) => sum + Number(val), 0) / accuracy.length;
         console.log('accuracy', accuracy, 'average:', avgAccuracy.toFixed(1) + '%');
     
