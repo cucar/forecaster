@@ -1,8 +1,9 @@
 class Brain {
     constructor() {
-        this.learningRate = 1; // how many times a pattern must be seen to be considered learned
+        this.learningRate = 2; // how many times a pattern must be seen to be considered learned
         this.maxLevel = 0; // keep track of maximum level reached - just for debugging
         this.contextSize = 10; // number of neurons to keep in context - short term memory size for each level
+        this.levelWeightFactor = 1; // Each level's predictions carry this much more weight than the level below
 
         // neurons storage
         this.neurons = [];
@@ -66,7 +67,8 @@ class Brain {
     }
 
     /**
-     * Activate a neuron and return the prediction or higher level prediction
+     * Activate a neuron and return predictions with their scores
+     * @returns {Object} - Map of neuronId to weighted prediction score
      */
     activate(neuronId, level = 0) {
 
@@ -81,16 +83,21 @@ class Brain {
 
         // then, update the transition counts with the newly activated neuron - this is how the neuron learns previous patterns, strengthening connections between neurons
         this.learn(neuronId, level);
-
+        
         // now that the neuron has learned the previous patterns, we can predict the next neuron to activate within our level of abstraction
-        const prediction = this.predict(level);
+        const predictions = this.predict(level);
 
         // finally, neurons will check if the observed pattern is a higher level concept, and if so, it will create/activate a new neuron to represent it
         // note that this is a recursive process, as the higher level neuron will also predict the next neuron to activate, and so on
-        const higherLevelPrediction = this.elevate(level);
+        const higherLevelPredictions = this.elevate(level);
+        
+        if (higherLevelPredictions) {
+            const weight = this.levelWeightFactor * (level + 1);
+            for (const [neuronId, score] of Object.entries(higherLevelPredictions))
+                predictions[neuronId] = (predictions[neuronId] || 0) + (score * weight);
+        }
 
-        // return the highest level prediction, or the prediction at our level if no higher level prediction is found
-        return higherLevelPrediction || prediction;
+        return predictions;
     }
 
     /**
@@ -231,6 +238,7 @@ class Brain {
      * It's a vote, but not everyone's contribution is identical. Every neuron predicts what they have seen before as to what 
      * comes after them 1, 2, 3, steps after, etc. up to a certain count. They all predict, but the latest neuron has a lot more 
      * weight than the first neuron that we can remember. If the observations are below a certain count, there may not be any prediction.
+     * @returns {Object} - Map of neuronId to prediction score
      */
     predict(level) {
         const context = this.getContext(level);
@@ -264,26 +272,14 @@ class Brain {
 
                 // add or increment the prediction score for the neuron we are predicting 
                 // the further away the neuron is in context, the less weight it has
-                // weight decreases linearly from 1 to 0.1 as distance increases from 1 to context size
+                // weight decreases linearly as distance increases from 1 to context size
                 const step = 1 / this.contextSize;
                 const weight = Math.max(1 + step - (distance * step), step);
                 predictions[transition.toNeuronId] = (predictions[transition.toNeuronId] || 0) + (transition.count * weight);
             });
         }
 
-        // if there are no predictions, return null
-        if (Object.keys(predictions).length === 0) return null;
-
-        // find the neuron with highest prediction score and return its id
-        let highestScore = 0;
-        let predictedNeuronId = null;
-        for (const [neuronId, score] of Object.entries(predictions)) {
-            if (score > highestScore) {
-                highestScore = score;
-                predictedNeuronId = neuronId;
-            }
-        }
-        return predictedNeuronId;
+        return predictions;
     }
 
     /**

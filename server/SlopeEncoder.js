@@ -19,28 +19,40 @@ class SlopeEncoder {
         console.log(this.avgDelta, timeSeriesData);
         
         // encode the time series data into neurons and activate them
-        let lastPredictedNeuronId = null; // predicted neuron id for each activated neuron
+        let lastPredictions = {}; // predicted neurons for each activated neuron
         const accuracy = []; // array of accuracy values for each prediction
         for (let i = 1; i < timeSeriesData.length; i++) {
             
             // Encode and activate current value
             const current = timeSeriesData[i];
             const previous = timeSeriesData[i-1];
-            const actualNeuronId = this.encode(current, previous);
+            const actualDegrees = this.calculateSlopeDegrees(current, previous);
+            const actualNeuronId = this.findNearestDegreeNeuron(actualDegrees);
             console.log(`Encoded neuron ${actualNeuronId}: ${this.brain.getNeuronName(actualNeuronId)}`);
             
             // Log prediction accuracy if we had a prediction - Calculate accuracy based on how close the predictions are (13 possible neurons)
-            if (lastPredictedNeuronId) {
-                const lastPredictedBaseNeuronId = this.brain.getStartingBaseNeuronId(lastPredictedNeuronId);
-                const distance = Math.abs(lastPredictedBaseNeuronId - actualNeuronId);
-                const accuracyValue = Math.max(0, 100 - 100 * (distance / 12));
+            if (lastPredictions && Object.keys(lastPredictions).length > 0) {
+                // Calculate weighted average of predicted neuron
+                const predictedDegrees = this.calculateWeightedAverageDegrees(lastPredictions);
+                const degreeDiff = Math.abs(predictedDegrees - actualDegrees);
+                const accuracyValue = Math.max(0, 100 - (degreeDiff / 180) * 100);
                 console.log(`PredictionAccuracy: ${accuracyValue.toFixed(1)}%`);
                 accuracy.push(accuracyValue.toFixed(1));
             }
     
-            // Get prediction for next value
-            lastPredictedNeuronId = this.brain.activate(actualNeuronId);
-            if (lastPredictedNeuronId) console.log(`Predicted Neuron: ${lastPredictedNeuronId} ${this.brain.getNeuronName(lastPredictedNeuronId)}`);
+            // Get predictions and convert pattern neurons to base neurons
+            const rawPredictions = this.brain.activate(actualNeuronId) || {};
+            lastPredictions = {};
+            for (const [neuronId, score] of Object.entries(rawPredictions)) {
+                const baseNeuronId = this.brain.getStartingBaseNeuronId(neuronId);
+                lastPredictions[baseNeuronId] = (lastPredictions[baseNeuronId] || 0) + score;
+            }
+
+            if (Object.keys(lastPredictions).length > 0) {
+                console.log('Predictions:', Object.entries(lastPredictions).map(([id, score]) => 
+                    `${this.brain.getNeuronName(id)}: ${score.toFixed(2)}`
+                ).join(', '));
+            }
         }
 
         // show the accuracy values and average
@@ -48,9 +60,9 @@ class SlopeEncoder {
         console.log('accuracy', accuracy, 'average:', avgAccuracy.toFixed(1) + '%', 'max level:', this.brain.maxLevel);
     
         // Convert the final predicted neuron to a forecasted value - get the lowest level base neuron if the neuron is a pattern neuron
-        const predictedBaseNeuronId = this.brain.getStartingBaseNeuronId(lastPredictedNeuronId);
+        const predictedDegrees = this.calculateWeightedAverageDegrees(lastPredictions);
         const lastValue = timeSeriesData[timeSeriesData.length - 1];
-        return this.decode(predictedBaseNeuronId, lastValue);
+        return this.decodeFromDegrees(predictedDegrees, lastValue);
     }
 
     /**
@@ -104,12 +116,32 @@ class SlopeEncoder {
     }
 
     /**
-     * Decode a neuron ID back to a value change
+     * Calculate weighted average degrees from prediction scores
      */
-    decode(neuronId, lastValue) {
-        // Convert neuron ID back to degrees
-        const degrees = (neuronId - 1) * this.granularity - 90;
+    calculateWeightedAverageDegrees(predictions) {
+        let totalScore = 0;
+        let weightedSum = 0;
         
+        for (const [neuronId, score] of Object.entries(predictions)) {
+            const degrees = this.neuronIdToDegrees(parseInt(neuronId));
+            weightedSum += degrees * score;
+            totalScore += score;
+        }
+        
+        return totalScore === 0 ? null : weightedSum / totalScore;
+    }
+
+    /**
+     * Convert a neuron ID to its corresponding degrees
+     */
+    neuronIdToDegrees(neuronId) {
+        return (neuronId - 1) * this.granularity - 90;
+    }
+
+    /**
+     * Decode a slope angle in degrees back to a value change
+     */
+    decodeFromDegrees(degrees, lastValue) {
         // Convert degrees to radians
         const radians = degrees * (Math.PI/180);
         
