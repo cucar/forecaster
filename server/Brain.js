@@ -4,17 +4,21 @@ class Brain {
         this.maxLevel = 0; // keep track of maximum level reached - just for debugging
         this.contextSize = 10; // number of neurons to keep in context - short term memory size for each level
 
+        // neurons storage
         this.neurons = [];
+
+        // transitions data for learning temporal patterns
         this.transitions = []; // The actual transitions data
         this.transitionsFromIndex = {}; // Index for looking up by fromNeuronId
         this.transitionsToIndex = {}; // Index for looking up by toNeuronId
         
-        // Pattern storage
+        // temporal patterns storage
         this.patterns = [];              // The actual pattern data
         this.patternChildIndex = {};     // Index for looking up by child neuron ID
         this.patternParentIndex = {};    // Index for looking up by parent neuron ID
         
-        this.contexts = [[]]  // Array of arrays of context objects: [[ { neuronId, elevated }, ... ], ...]
+        // Array of arrays of context objects: [[ { neuronId, elevated }, ... ], ...]
+        this.contexts = [[]];
     }
 
     /**
@@ -223,7 +227,10 @@ class Brain {
     }
 
     /**
-     * Predict the next value based on the transitions to a given neuron
+     * Predict the next value based on the transitions to a given neuron. The prediction is done based on past observations.
+     * It's a vote, but not everyone's contribution is identical. Every neuron predicts what they have seen before as to what 
+     * comes after them 1, 2, 3, steps after, etc. up to a certain count. They all predict, but the latest neuron has a lot more 
+     * weight than the first neuron that we can remember. If the observations are below a certain count, there may not be any prediction.
      */
     predict(level) {
         const context = this.getContext(level);
